@@ -1,0 +1,40 @@
+# This file configures Charmcraft.
+# See https://juju.is/docs/sdk/charmcraft-config for guidance.
+
+name: ollama
+type: charm
+title: Ollama - Get up and running with large language models.
+
+summary: Deploys and manages Ollama, an inference engine for large language models.
+
+description: |
+  Ollama is an inference engine designed for large language models, enabling users to deploy and manage these models efficiently.
+  This charm facilitates the integration of Ollama into your cloud environment, streamlining the process of running and scaling language model applications.
+  With Ollama, users can leverage advanced natural language processing capabilities to build intelligent applications that understand and generate human-like text.
+  The charm automates the deployment process, ensuring that all dependencies are properly configured and that the application runs smoothly.
+  This charm is suitable for developers and organizations looking to harness the power of large language models in their applications without the complexity of manual setup and configuration.
+
+  Ollama exposes an HTTP API with the same format as OpenAI, enabling rapid migration of your application from closed-source models like OpenAI's to open-source models like Llama and Mistral.
+
+bases:
+  - build-on:
+    - name: ubuntu
+      channel: "22.04"
+    run-on:
+    - name: ubuntu
+      channel: "22.04"
+
+config:
+  options:
+    log-level:
+      description: |
+        Configures the log level of gunicorn.
+
+        Acceptable values are: "info", "debug", "warning", "error" and "critical"
+      default: "info"
+      type: string
+
+    port:
+      description: The port on which Ollama will expose its API.
+      default: 11434
+      type: int
