@@ -29,8 +29,56 @@ def run_shell(cmd: str):
 class OllamaCharm(CharmBase):
     """ Machine charm for Ollama """
 
+    _charm_state = StoredState()
+
     def __init__(self, *args):
         super().__init__(*args)
+        self.framework.observe(self.on.install, self._on_install)
+
+        self._charm_state.set_default(installed=False, port=self.config["port"])
+
+    def _on_install(self, _: InstallEvent):
+        """ Install Ollama service """
+        self.unit.status = MaintenanceStatus("Installing Ollama")
+
+        try:
+            self._install_ollama()
+            self._setup_ollama_service(self._charm_state.port)
+
+            self._charm_state.installed = True
+            self.unit.status = MaintenanceStatus("Ollama installed")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to install Ollama: {e}")
+            self.unit.status = BlockedStatus("Failed to install Ollama")
+
+    def _install_ollama(self):
+        """ Download and install Ollama """
+        run_shell("sudo curl -L https://ollama.com/download/ollama-linux-amd64 -o /usr/bin/ollama")
+        run_shell("sudo chmod +x /usr/bin/ollama")
+        run_shell("sudo useradd -r -s /bin/false -m -d /usr/share/ollama ollama")
+
+    def _setup_ollama_service(self, port: int):
+        """ Sets up Ollama systemd service. """
+        service_content = textwrap.dedent(f"""
+            [Unit]
+            Description=Ollama Service
+            After=network-online.target
+
+            [Service]
+            Environment="OLLAMA_HOST=0.0.0.0:{str(port)}"
+            ExecStart=/usr/bin/ollama serve
+            User=ollama
+            Group=ollama
+            Restart=always
+            RestartSec=3
+
+            [Install]
+            WantedBy=default.target
+        """)
+        with open("/etc/systemd/system/ollama.service", "w") as f:
+            f.write(service_content)
+
+        run_shell("sudo systemctl daemon-reload")
 
 if __name__ == "__main__":
     main(OllamaCharm)
