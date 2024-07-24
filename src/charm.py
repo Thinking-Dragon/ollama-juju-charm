@@ -34,6 +34,7 @@ class OllamaCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.framework.observe(self.on.install, self._on_install)
+        self.framework.observe(self.on.start, self._on_start)
 
         self._charm_state.set_default(installed=False, port=self.config["port"])
 
@@ -50,6 +51,22 @@ class OllamaCharm(CharmBase):
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to install Ollama: {e}")
             self.unit.status = BlockedStatus("Failed to install Ollama")
+
+    def _on_start(self, _: StartEvent):
+        """ Start Ollama service """
+        if not self._charm_state.installed:
+            self.unit.status = BlockedStatus("Cannot start, Ollama is not installed")
+            return
+
+        self.unit.status = MaintenanceStatus("Starting Ollama service")
+        try:
+            run_shell(f"sudo systemctl start ollama.service")
+
+            self.unit.open_port("tcp", self._charm_state.port)
+            self.unit.status = ActiveStatus("Ollama is running")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to start Ollama service: {e}")
+            self.unit.status = BlockedStatus("Failed to start Ollama service")
 
     def _install_ollama(self):
         """ Download and install Ollama """
