@@ -1,14 +1,22 @@
 # ollama
+[![Charmhub Badge](https://charmhub.io/ollama/badge.svg)](https://charmhub.io/ollama)
 
-Charmhub package name: operator-template
-More information: https://charmhub.io/ollama
+Charmed [Ollama](https://github.com/ollama/ollama).
 
-Describe your charm in one or two sentences.
+## Installation
+```bash
+juju deploy ollama --channel=beta
+juju ssh ollama/0 ollama run llama3.1
+```
+
+## Usage
+```bash
+juju ssh ollama/0 curl localhost:11434/api/generate -d '{
+  "model": "llama3.1",
+  "prompt":"Why is the sky blue?"
+}'
+```
 
 ## Other resources
-
-- [Read more](https://example.com)
-
-- [Contributing](CONTRIBUTING.md) <!-- or link to other contribution documentation -->
 
 - See the [Juju SDK documentation](https://juju.is/docs/sdk) for more information about developing and improving charms.
