@@ -20,7 +20,7 @@ Note: the *pull* action may take a long time, you can add the `--wait` parameter
 ```bash
 juju run ollama/0 generate model="llama3.1" prompt="Why is the sky blue?"
 ```
-Note: the *generate* action may take a long time, you can add the `--wait` parameter (i.e. `--wait=5m`) to avoir getting a timeout error if your hardware is too slow.
+Note: the *generate* action may take a long time, you can add the `--wait` parameter (i.e. `--wait=5m`) to avoid getting a timeout error if your hardware is too slow.
 
 ### Generating text using the HTTP API
 ```bash
