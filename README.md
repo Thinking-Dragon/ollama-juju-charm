@@ -1,7 +1,10 @@
-# ollama
+![Ollama icon](https://raw.githubusercontent.com/Thinking-Dragon/ollama-juju-charm/main/icon.svg)
+# Charmed Ollama
 [![Charmhub Badge](https://charmhub.io/ollama/badge.svg)](https://charmhub.io/ollama)
 
-Charmed [Ollama](https://github.com/ollama/ollama).
+[Ollama](https://github.com/ollama/ollama) enables easy deployment of large language models on your own infrastructure.
+
+See the models available in the [Ollama library](https://ollama.com/library).
 
 ## Installation
 ### Deploying Ollama on your cloud using Juju
