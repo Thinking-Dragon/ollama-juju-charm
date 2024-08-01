@@ -25,15 +25,24 @@ bases:
 
 config:
   options:
-    log-level:
-      description: |
-        Configures the log level of gunicorn.
-
-        Acceptable values are: "info", "debug", "warning", "error" and "critical"
-      default: "info"
-      type: string
-
     port:
       description: The port on which Ollama will expose its API.
       default: 11434
       type: int
+
+actions:
+  generate:
+    description: |
+      Completes a given prompt using the large language model you specify.
+      Notice: you need to pull the model you want to use prior to running the "generate" action.
+    params:
+      model:
+        type: string
+        description: "The name of the model to use"
+      prompt:
+        type: string
+        description: "The prompt you want to give to the LLM"
+    required:
+    - model
+    - prompt
+    additionalProperties: false
