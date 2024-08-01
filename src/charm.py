@@ -37,6 +37,7 @@ class OllamaCharm(CharmBase):
         self.framework.observe(self.on.start, self._on_start)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.generate_action, self._on_generate_action)
+        self.framework.observe(self.on.pull_action, self._on_pull_action)
 
         self._charm_state.set_default(installed=False, port=self.config["port"])
 
@@ -106,7 +107,10 @@ class OllamaCharm(CharmBase):
         parameters["prompt"] = event.params["prompt"]
 
         event.log("Executing prompt…")
-        response = requests.post(f"http://localhost:{self._charm_state.port}/api/generate", json=parameters).json()
+        response = requests.post(
+            f"http://localhost:{self._charm_state.port}/api/generate",
+            json=parameters
+        ).json()
 
         if "error" in response:
             event.fail(response["error"])
@@ -117,6 +121,19 @@ class OllamaCharm(CharmBase):
             "timestamp": response["created_at"],
             "response": response["response"],
         })
+
+    def _on_pull_action(self, event: ActionEvent):
+        if not "model" in event.params:
+            event.fail("Parameter \"model\" was not provided, it is required.")
+            return
+        model = event.params["model"]
+
+        event.log(f"Downloading model {model}…")
+        requests.post(
+            f"http://localhost:{self._charm_state.port}/api/pull",
+            json={"name": model}
+        )
+        event.log("Done.")
 
     def _install_ollama(self):
         """ Download and install Ollama """
