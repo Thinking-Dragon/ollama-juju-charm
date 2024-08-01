@@ -12,9 +12,10 @@
 
 import logging
 import subprocess
-import textwrap
 
-from ops import InstallEvent, StartEvent, ConfigChangedEvent
+import requests
+
+from ops import InstallEvent, StartEvent, ConfigChangedEvent, ActionEvent
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -35,6 +36,7 @@ class OllamaCharm(CharmBase):
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.start, self._on_start)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.generate_action, self._on_generate_action)
 
         self._charm_state.set_default(installed=False, port=self.config["port"])
 
@@ -86,6 +88,35 @@ class OllamaCharm(CharmBase):
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to update Ollama port: {e}")
                 self.unit.status = BlockedStatus("Failed to update Ollama port")
+
+    def _on_generate_action(self, event: ActionEvent):
+        """ Generate completion given a prompt """
+        parameters = {
+            "stream": False
+        }
+
+        if not "model" in event.params:
+            event.fail("Parameter \"model\" was not provided, it is required.")
+            return
+        parameters["model"] = event.params["model"]
+
+        if not "prompt" in event.params:
+            event.fail("Parameter \"prompt\" was not provided, it is required.")
+            return
+        parameters["prompt"] = event.params["prompt"]
+
+        event.log("Executing prompt…")
+        response = requests.post(f"http://localhost:{self._charm_state.port}/api/generate", json=parameters).json()
+
+        if "error" in response:
+            event.fail(response["error"])
+            return
+
+        event.set_results({
+            "model": response["model"],
+            "timestamp": response["created_at"],
+            "response": response["response"],
+        })
 
     def _install_ollama(self):
         """ Download and install Ollama """
