@@ -10,8 +10,14 @@ juju ssh ollama/0 ollama run llama3.1
 ```
 
 ## Usage
+### Generating text using the juju action
 ```bash
-juju ssh ollama/0 curl localhost:11434/api/generate -d '{
+juju run ollama/0 generate model="llama3.1" prompt="Why is the sky blue?"
+```
+
+### Generating text using the HTTP API
+```bash
+curl http://<unit-ip-address>:11434/api/generate -d '{
   "model": "llama3.1",
   "prompt":"Why is the sky blue?"
 }'
