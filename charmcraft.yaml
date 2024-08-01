@@ -46,3 +46,12 @@ actions:
     - model
     - prompt
     additionalProperties: false
+  pull:
+    description: "Downloads and serves the model you specify. Find available models here: https://ollama.com/library"
+    params:
+      model:
+        type: string
+        description: "The name of the model to pull"
+    required:
+    - model
+    additionalProperties: false
