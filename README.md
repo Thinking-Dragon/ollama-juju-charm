@@ -7,6 +7,8 @@
 See the models available in the [Ollama library](https://ollama.com/library).
 
 ## Installation
+[![Get it from the Charmhub](https://charmhub.io/static/images/badges/en/charmhub-black.svg)](https://charmhub.io/ollama)
+
 ### Deploying Ollama on your cloud using Juju
 ```bash
 juju deploy ollama --channel=beta
