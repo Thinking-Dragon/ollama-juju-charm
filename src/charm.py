@@ -12,6 +12,7 @@
 
 import logging
 import subprocess
+import textwrap
 
 import requests
 
@@ -23,9 +24,22 @@ from ops.model import ActiveStatus, MaintenanceStatus, BlockedStatus
 
 logger = logging.getLogger(__name__)
 
-def run_shell(cmd: str):
+def run_shell(cmd: str) -> str:
     """ Shorthand to run a shell command """
-    subprocess.run(cmd.split(), check=True)
+    return subprocess.run(
+        cmd.split(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=True,
+    ).stdout.decode("utf-8")
+
+class PulledModel:
+    """ Information about a model that has been pulled locally by Ollama """
+    def __init__(self, name: str, model_id: str, size: str, modified: str):
+        self.name = name
+        self.id = model_id
+        self.size = size
+        self.modified = modified
 
 class OllamaCharm(CharmBase):
     """ Machine charm for Ollama """
@@ -96,10 +110,36 @@ class OllamaCharm(CharmBase):
             "stream": False
         }
 
-        if not "model" in event.params:
-            event.fail("Parameter \"model\" was not provided, it is required.")
+        pulled_models = self._get_pulled_models()
+        if "model" in event.params:
+            model_parameter = event.params["model"]
+
+            for model in pulled_models:
+                if self._strip_channel_of_model_if_exists(model.name) == model_parameter:
+                    model_parameter = model.name
+
+            if (not any(model.name == model_parameter) for model in pulled_models):
+                event.fail(textwrap.dedent(f"""
+                    The model you provided ({model_parameter}) was not pulled by Ollama.
+                    Make sure that {model_parameter} exists in https://ollama.com/library.
+                    Then pull it using `juju run {self.unit.name} pull model="{model_parameter}"`
+                """))
+                return
+            parameters["model"] = model_parameter
+
+        elif pulled_models:
+            picked_model = pulled_models[0].name
+            event.log(f"Since you have not provided a model, we are using \"{picked_model}\".")
+            parameters["model"] = picked_model
+
+        else:
+            event.fail(textwrap.dedent(f"""
+                No model was pulled on Ollama.
+                You must pull at least one model before running the generate action.
+                You can find all available models at https://ollama.com/library.
+                Use `juju run {self.unit.name} pull model="<model_name>"`.
+            """))
             return
-        parameters["model"] = event.params["model"]
 
         if not "prompt" in event.params:
             event.fail("Parameter \"prompt\" was not provided, it is required.")
@@ -142,6 +182,37 @@ class OllamaCharm(CharmBase):
     def _set_ollama_port(self, port: int):
         """ Sets the port where Ollama is served """
         run_shell(f"sudo snap set ollama host=0.0.0.0:{str(port)}")
+
+    def _get_pulled_models(self) -> list[PulledModel]:
+        """ Returns all models that have been pulled by Ollama """
+        models_list = run_shell("ollama list")
+
+        lines = [
+            [
+                row.strip()
+                for row in line.split("\t")
+                if row != ""
+            ]
+            for line in models_list.split("\n")
+        ]
+        lines = [line for line in lines if len(line) == len(lines[0])]
+
+        return [
+            PulledModel(
+                model_raw[0],
+                model_raw[1],
+                model_raw[2],
+                model_raw[3],
+            )
+            for model_raw in lines[1:]
+        ]
+
+    def _strip_channel_of_model_if_exists(self, raw_model_name: str) -> str:
+        colon_id = raw_model_name.find(":")
+        if colon_id != -1:
+            return raw_model_name[:colon_id]
+        else:
+            return raw_model_name
 
 if __name__ == "__main__":
     main(OllamaCharm)
