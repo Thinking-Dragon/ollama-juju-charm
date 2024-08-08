@@ -22,6 +22,8 @@ from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, MaintenanceStatus, BlockedStatus
 
+from charms.operator_libs_linux.v2 import snap
+
 logger = logging.getLogger(__name__)
 
 def run_shell(cmd: str) -> str:
@@ -177,11 +179,20 @@ class OllamaCharm(CharmBase):
 
     def _install_ollama(self):
         """ Download and install Ollama """
-        run_shell("sudo snap install ollama")
+        snap_cache = snap.SnapCache()
+        ollama_snap = snap_cache["ollama"]
+        ollama_snap.ensure(state=snap.SnapState.Present)
+        ollama_snap.hold()
 
     def _set_ollama_port(self, port: int):
         """ Sets the port where Ollama is served """
-        run_shell(f"sudo snap set ollama host=0.0.0.0:{str(port)}")
+        snap_cache = snap.SnapCache()
+        ollama_snap = snap_cache["ollama"]
+        
+        if not ollama_snap.present:
+            raise snap.SnapError(f"Ollama is not installed.")
+        
+        ollama_snap.set({"host": f"0.0.0.0:{str(port)}"})
 
     def _get_pulled_models(self) -> list[PulledModel]:
         """ Returns all models that have been pulled by Ollama """
