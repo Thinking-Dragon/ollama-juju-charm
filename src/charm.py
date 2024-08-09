@@ -120,7 +120,7 @@ class OllamaCharm(CharmBase):
                 if self._strip_channel_of_model_if_exists(model.name) == model_parameter:
                     model_parameter = model.name
 
-            if (not any(model.name == model_parameter) for model in pulled_models):
+            if (not any(model.name == model_parameter for model in pulled_models)):
                 event.fail(textwrap.dedent(f"""
                     The model you provided ({model_parameter}) was not pulled by Ollama.
                     Make sure that {model_parameter} exists in https://ollama.com/library.
