@@ -149,20 +149,30 @@ class OllamaCharm(CharmBase):
         parameters["prompt"] = event.params["prompt"]
 
         event.log("Executing prompt…")
-        response = requests.post(
-            f"http://localhost:{self._charm_state.port}/api/generate",
-            json=parameters
-        ).json()
+        try:
+            response = requests.post(
+                f"http://localhost:{self._charm_state.port}/api/generate",
+                json=parameters
+            )
+            response_content = response.json()
 
-        if "error" in response:
-            event.fail(response["error"])
-            return
+            if "error" in response_content:
+                error_message = response_content["error"]
+                event.fail(f"Could not generate text: \"{error_message}\"")
+                return
 
-        event.set_results({
-            "model": response["model"],
-            "timestamp": response["created_at"],
-            "response": response["response"],
-        })
+            if not response.ok:
+                event.fail(f"Could not generate text: \"{response.reason}\"")
+                return
+
+            event.set_results({
+                "model": response_content["model"],
+                "timestamp": response_content["created_at"],
+                "response": response_content["response"],
+            })
+
+        except Exception as error:
+            event.fail(f"Could not generate text: \"{error}\"")
 
     def _on_pull_action(self, event: ActionEvent):
         if not "model" in event.params:
@@ -171,11 +181,26 @@ class OllamaCharm(CharmBase):
         model = event.params["model"]
 
         event.log(f"Downloading model {model}…")
-        requests.post(
-            f"http://localhost:{self._charm_state.port}/api/pull",
-            json={"name": model}
-        )
-        event.log("Done.")
+
+        try:
+            response = requests.post(
+                f"http://localhost:{self._charm_state.port}/api/pull",
+                json={"name": model, "stream": False}
+            )
+            response_content = response.json()
+
+            if "error" in response_content:
+                error_message = response_content["error"]
+                event.fail(f"Could not pull model {model}: \"{error_message}\"")
+                return
+
+            if not response.ok:
+                event.fail(f"Could not pull model {model}: \"{response.reason}\"")
+                return
+
+            event.log("Done.")
+        except Exception as error:
+            event.fail(f"Could not pull model {model}: \"{error}\"")
 
     def _install_ollama(self):
         """ Download and install Ollama """
