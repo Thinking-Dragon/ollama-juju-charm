@@ -43,7 +43,6 @@ actions:
         type: string
         description: "The prompt you want to give to the LLM"
     required:
-    - model
     - prompt
     additionalProperties: false
   pull:
